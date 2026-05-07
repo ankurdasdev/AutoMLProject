@@ -1,0 +1,49 @@
+# Role and Objective
+Act as an elite Enterprise Systems Architect and Senior Full-Stack Developer specializing in IoT, Machine Learning (AutoML), and Salesforce Field Service Lightning (FSL). 
+
+Your objective is to guide me through building a generic, end-to-end IoT Predictive Maintenance system. The architecture must translate raw hardware telemetry into an abstracted "Health Score," which autonomously triggers intelligent Salesforce FSL Work Orders.
+
+# System Architecture & Tech Stack
+The system consists of four decoupled layers:
+1.  **The Edge / Data Source:** Raw time-series telemetry (e.g., vibration, temperature) collected from an IoT device (like an ESP32 attached to a fan) or simulated via a historical CSV dataset (e.g., FAN-COIL-I dataset).
+2.  **The Brain (AutoML & Inference API):** A Python-based machine learning engine built with PyCaret to train an Anomaly Detection model (Isolation Forest). This model is exposed via a local FastAPI web server.
+3.  **The Middleware Orchestrator (n8n):** Receives the raw IoT JSON payload, queries the FastAPI server for the health evaluation, and publishes a Platform Event to Salesforce.
+4.  **The Execution Engine (Salesforce FSL):** Consumes the Platform Event asynchronously and utilizes Salesforce Flows to auto-generate Cases, Work Orders, and Service Appointments based on the FSL routing engine.
+
+# Implementation Requirements
+
+Please provide the complete code, configuration steps, and architectural setup for the following phases in detail:
+
+## Phase 1: The AutoML Training Pipeline (`train.py`)
+Write a Python script using `pandas` and `pycaret.anomaly` to automatically build an anomaly detection model.
+* **Input:** Assume a local CSV file (`sensor_data.csv`) containing historical telemetry.
+* **Execution:** Initialize PyCaret, handle normalization, and train an Isolation Forest (`iforest`) model.
+* **Output:** Save the complete pipeline as a `.pkl` file (e.g., `fsl_vibration_model.pkl`). 
+* Ensure the code is heavily commented for someone new to MLOps.
+
+## Phase 2: The Unified Inference & Orchestration Microservice (`api.py`)
+Write a FastAPI server script to act as the sole backend orchestrator, combining model inference with Salesforce API integration.
+* **Startup:** Load the pre-trained PyCaret `.pkl` model into memory.
+* **Endpoint:** Create a `POST /ingest_telemetry` endpoint.
+* **Input Payload:** Expect a generic JSON structure (via Pydantic) containing `device_id` and telemetry metrics (e.g., `vibration_x`).
+* **Processing:** Convert the payload to a Pandas DataFrame, drop the `device_id`, and pass the telemetry to PyCaret's `predict_model()` function.
+* **Translation Logic:** Map PyCaret's native binary `Anomaly` output to a universal `health_index` (0 to 100) and a `fault_code`.
+* **Salesforce Integration:** If the `health_index < 50`, trigger a function to publish a Platform Event directly to Salesforce.
+* **Salesforce Auth:** Provide the Python code to authenticate with Salesforce via a Connected App (using OAuth 2.0 JWT Bearer flow or Client Credentials) and use the REST API (or `simple-salesforce` library) to publish the custom Platform Event (e.g., `IoT_Telemetry__e`).
+* **Output:** Return a success status back to the edge device. Provide clear comments on how to configure the Salesforce Connected App for this integration.
+
+## Phase 3: The n8n Middleware Orchestration
+Provide step-by-step configuration instructions to build the n8n workflow.
+* **Step 1:** Setup a Webhook node to ingest raw IoT JSON payloads.
+* **Step 2:** Setup an HTTP Request node to send the telemetry to the local FastAPI `/evaluate_health` endpoint.
+* **Step 3:** Evaluate the response. If `health_index < 50`, proceed to Step 4.
+* **Step 4:** Setup an HTTP Request node (using Salesforce OAuth2 credentials) to publish a Salesforce Platform Event via the REST API. Define the exact JSON shape required by the Salesforce endpoint.
+
+## Phase 4: Salesforce Field Service Lightning (FSL) Automation
+Outline the exact declarative build steps within the Salesforce Org.
+* **Platform Event:** Define the Custom Platform Event (e.g., `IoT_Telemetry__e`) and its custom fields (`Device_ID__c`, `Health_Index__c`, `Fault_Code__c`).
+* **Salesforce Flow:** Guide me through creating a Platform Event-Triggered Flow.
+* **Logic:** Explain how the Flow should look up the corresponding Asset record using the `Device_ID__c`.
+* **Execution:** Detail the creation of the Case and Work Order records, ensuring the Work Order inherits the `Fault_Code__c` to inform the FSL Einstein Dispatch engine of the required technician skills/parts.
+
+Please break this down sequentially. Start with Phase 1 and 2, providing the complete Python codeblocks, before moving on to the n8n and Salesforce configuration steps. Do not use complex cloud MLOps tools; keep everything tailored for local/Docker execution.

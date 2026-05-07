@@ -1,0 +1,23 @@
+# Python
+ai_env/
+venv/
+.env
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Large Data Files (GitHub 100MB limit)
+*.npy
+*.npz
+*.csv
+*.pdf
+*.MOV
+Fan coil health model dataset/unzipped/
+Fan coil health model dataset/resources/
+
+# OS files
+.DS_Store
+Thumbs.db

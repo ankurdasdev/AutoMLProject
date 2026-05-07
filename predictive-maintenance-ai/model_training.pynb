@@ -1,0 +1,35 @@
+import pandas as pd
+import numpy as np
+from sklearn.ensemble import IsolationForest
+from sklearn.preprocessing import StandardScaler
+import joblib
+
+# 1. Simulate Incoming Telemetry (The Baseline Phase)
+# Imagine this is 1 hour of healthy data pulled via Supabase or n8n
+data = {
+    'device_id': ['Fan_01'] * 100,
+    'vibration_rms': np.random.normal(5.0, 0.5, 100), # Normal CPU fan vibration
+    'temperature_c': np.random.normal(40.0, 2.0, 100) # Normal CPU fan temp
+}
+df = pd.DataFrame(data)
+
+# 2. The Normalization Engine (Solution 1)
+# We train a scaler exclusively on this specific device's healthy baseline
+scaler = StandardScaler()
+features = ['vibration_rms', 'temperature_c']
+
+# The scaler learns the mean and standard deviation of Fan_01
+scaler.fit(df[features]) 
+
+# We transform the raw physics into universal standard deviations
+df_normalized = pd.DataFrame(scaler.transform(df[features]), columns=features)
+
+# 3. Train the Isolation Forest on the Normalized Data
+# The model now only looks at statistical shifts, not raw physics
+model = IsolationForest(n_estimators=100, contamination=0.01, random_state=42)
+model.fit(df_normalized)
+
+# 4. Save the artifacts for production
+joblib.dump(scaler, 'device_Fan_01_scaler.pkl')
+joblib.dump(model, 'universal_anomaly_model.pkl')
+print("Model and Scaler successfully trained and saved.")

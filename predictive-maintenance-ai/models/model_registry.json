@@ -1,0 +1,47 @@
+{
+  "dev_9e243605bb": {
+    "device_key": "dev_9e243605bb",
+    "device_label": "Fan Coil I (Legacy)",
+    "model_file": "fsl_heavy_motor_model.joblib",
+    "feature_cols": [
+      "fwd_rms_vel",
+      "fwd_mean",
+      "fwd_std",
+      "fwd_min",
+      "fwd_max",
+      "fwd_skew",
+      "fwd_kurtosis",
+      "rr_rms_vel",
+      "rr_mean",
+      "rr_std",
+      "rr_min",
+      "rr_max",
+      "rr_skew",
+      "rr_kurtosis"
+    ],
+    "algorithm": "LocalOutlierFactor",
+    "contamination": 0.014,
+    "score_separation": 1.3122,
+    "training_samples": 2619,
+    "trained_at": "2026-05-06T13:48:44Z",
+    "upload_count": 17,
+    "last_used": "2026-05-06T15:25:57Z"
+  },
+  "dev_7cfe5eb7a2": {
+    "device_key": "dev_7cfe5eb7a2",
+    "device_label": "CPU Cooling Fan (MPU-6050)",
+    "model_file": "model_dev_7cfe5eb7a2.joblib",
+    "feature_cols": [
+      "accel_x",
+      "accel_y",
+      "accel_z",
+      "temp"
+    ],
+    "algorithm": "LocalOutlierFactor",
+    "contamination": 0.014,
+    "score_separation": 1.0062,
+    "training_samples": 200,
+    "trained_at": "2026-05-06T14:39:07Z",
+    "upload_count": 0
+  }
+}

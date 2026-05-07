@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>IoT Predictive Maintenance — AutoML Pipeline</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f1a;
+      --card: #131929;
+      --border: #1e2d45;
+      --accent: #3b82f6;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --orange: #f97316;
+      --red: #ef4444;
+      --text: #e2e8f0;
+      --muted: #64748b
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      min-height: 100vh
+    }
+
+    header {
+      background: linear-gradient(135deg, #0f172a, #1e3a5f);
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid var(--border)
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent
+    }
+
+    header span {
+      font-size: .75rem;
+      background: #1e3a5f;
+      padding: 3px 10px;
+      border-radius: 20px;
+      color: #60a5fa;
+      border: 1px solid #3b82f6
+    }
+
+    .container {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 32px 24px
+    }
+
+    /* Upload Zone */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      padding: 60px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .3s;
+      background: var(--card);
+      position: relative
+    }
+
+    .upload-zone:hover,
+    .upload-zone.drag {
+      border-color: var(--accent);
+      background: #131f35
+    }
+
+    .upload-zone .icon {
+      font-size: 3rem;
+      margin-bottom: 16px
+    }
+
+    .upload-zone h2 {
+      font-size: 1.3rem;
+      margin-bottom: 8px
+    }
+
+    .upload-zone p {
+      color: var(--muted);
+      font-size: .9rem
+    }
+
+    .upload-zone input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer
+    }
+
+    .btn {
+      background: linear-gradient(135deg, var(--accent), #6366f1);
+      color: #fff;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: .95rem;
+      font-weight: 600;
+      transition: opacity .2s
+    }
+
+    .btn:hover {
+      opacity: .85
+    }
+
+    .btn:disabled {
+      opacity: .4;
+      cursor: not-allowed
+    }
+
+    /* Stages */
+    .stages {
+      display: flex;
+      gap: 8px;
+      margin: 32px 0;
+      flex-wrap: wrap
+    }
+
+    .stage-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 600;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      transition: all .3s
+    }
+
+    .stage-pill.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: #131f35
+    }
+
+    .stage-pill.done {
+      border-color: var(--green);
+      color: var(--green);
+      background: #0f2a1a
+    }
+
+    /* Cards */
+    .grid {
+      display: grid;
+      gap: 20px
+    }
+
+    .grid-2 {
+      grid-template-columns: 1fr 1fr
+    }
+
+    .grid-3 {
+      grid-template-columns: 1fr 1fr 1fr
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px
+    }
+
+    .card h3 {
+      font-size: .85rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 16px
+    }
+
+    /* Health Gauge */
+    .gauge-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px
+    }
+
+    .gauge-ring {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      font-weight: 800;
+      border: 10px solid var(--border);
+      position: relative;
+      transition: border-color .5s
+    }
+
+    .gauge-ring.green {
+      border-color: var(--green);
+      color: var(--green)
+    }
+
+    .gauge-ring.yellow {
+      border-color: var(--yellow);
+      color: var(--yellow)
+    }
+
+    .gauge-ring.orange {
+      border-color: var(--orange);
+      color: var(--orange)
+    }
+
+    .gauge-ring.red {
+      border-color: var(--red);
+      color: var(--red)
+    }
+
+    .status-badge {
+      padding: 6px 18px;
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 700
+    }
+
+    .status-badge.HEALTHY {
+      background: #0f2a1a;
+      color: var(--green)
+    }
+
+    .status-badge.DEGRADED_WATCH {
+      background: #2a1f0f;
+      color: var(--yellow)
+    }
+
+    .status-badge.FAULT_IMMINENT {
+      background: #2a1a0f;
+      color: var(--orange)
+    }
+
+    .status-badge.CRITICAL_FAILURE {
+      background: #2a0f0f;
+      color: var(--red)
+    }
+
+    /* Stat tiles */
+    .stat-tile {
+      background: #0f172a;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center
+    }
+
+    .stat-tile .val {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--accent)
+    }
+
+    .stat-tile .lbl {
+      font-size: .75rem;
+      color: var(--muted);
+      margin-top: 4px
+    }
+
+    /* AutoML log */
+    .automl-log {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 300px;
+      overflow-y: auto
+    }
+
+    .log-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: .83rem;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: #0f172a;
+      border-left: 3px solid var(--green)
+    }
+
+    .log-item.warning {
+      border-color: var(--yellow)
+    }
+
+    .log-item.training {
+      border-color: var(--accent)
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .83rem
+    }
+
+    th {
+      background: #0f172a;
+      padding: 10px 12px;
+      text-align: left;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: .75rem;
+      text-transform: uppercase;
+      letter-spacing: .06em
+    }
+
+    td {
+      padding: 10px 12px;
+      border-top: 1px solid var(--border)
+    }
+
+    tr:hover td {
+      background: #0f172a
+    }
+
+    .hi-chip {
+      padding: 3px 10px;
+      border-radius: 10px;
+      font-size: .75rem;
+      font-weight: 700
+    }
+
+    /* Loading spinner */
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    .hidden {
+      display: none !important
+    }
+
+    @media(max-width:700px) {
+
+      .grid-2,
+      .grid-3 {
+        grid-template-columns: 1fr
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div style="font-size:1.6rem">🏭</div>
+    <h1>IoT Predictive Maintenance</h1>
+    <span>AutoML Pipeline v1.0</span>
+  </header>
+
+  <div class="container">
+    <!-- Pipeline Stage Pills -->
+    <div class="stages">
+      <div class="stage-pill active" id="pill-0">① Upload Data</div>
+      <div class="stage-pill" id="pill-1">② AutoML Processing</div>
+      <div class="stage-pill" id="pill-2">③ Results Dashboard</div>
+      <div class="stage-pill" id="pill-3">④ Summary Report</div>
+    </div>
+
+    <!-- STAGE 0: Upload -->
+    <div id="stage-0">
+      <div class="upload-zone" id="drop-zone">
+        <input type="file" id="file-input" accept=".csv,.npz" />
+        <div class="icon">📁</div>
+        <h2>Upload Sensor Data</h2>
+        <p>Drag & drop or click to upload a <strong>.csv</strong> or <strong>.npz</strong> file</p>
+        <p style="margin-top:8px;font-size:.8rem;color:var(--muted)">CSV: must have feature columns | NPZ: raw vibration
+          signals</p>
+      </div>
+      <div style="text-align:center;margin-top:24px">
+        <button class="btn" id="upload-btn" disabled>Run AutoML Pipeline</button>
+      </div>
+      <div id="file-name" style="text-align:center;margin-top:12px;color:var(--muted);font-size:.85rem"></div>
+    </div>
+
+    <!-- STAGE 1: Processing -->
+    <div id="stage-1" class="hidden">
+      <div class="card">
+        <h3>AutoML Processing Log</h3>
+        <div style="margin-bottom:20px;text-align:center">
+          <div class="spinner" id="proc-spinner"></div>
+          <p style="margin-top:12px;color:var(--muted)">Running pipeline...</p>
+        </div>
+        <div class="automl-log" id="automl-log"></div>
+      </div>
+    </div>
+
+    <!-- STAGE 2: Results -->
+    <div id="stage-2" class="hidden">
+      <!-- Health Overview -->
+      <div class="grid grid-3" style="margin-bottom:20px">
+        <div class="card">
+          <h3>Overall Health</h3>
+          <div class="gauge-wrap">
+            <div class="gauge-ring" id="gauge-ring"><span id="gauge-val">--</span></div>
+            <div class="status-badge HEALTHY" id="status-badge">--</div>
+          </div>
+        </div>
+        <div class="card" style="grid-column:span 2">
+          <h3>Quick Stats</h3>
+          <div class="grid grid-3" style="gap:12px">
+            <div class="stat-tile">
+              <div class="val" id="stat-total">--</div>
+              <div class="lbl">Total Samples</div>
+            </div>
+            <div class="stat-tile">
+              <div class="val" id="stat-anomalies" style="color:var(--red)">--</div>
+              <div class="lbl">Anomalies Detected</div>
+            </div>
+            <div class="stat-tile">
+              <div class="val" id="stat-rate">--</div>
+              <div class="lbl">Anomaly Rate %</div>
+            </div>
+            <div class="stat-tile">
+              <div class="val" id="stat-model" style="font-size:1rem">--</div>
+              <div class="lbl">Model Used</div>
+            </div>
+            <div class="stat-tile">
+              <div class="val" id="stat-cont" style="font-size:1rem">--</div>
+              <div class="lbl">Contamination</div>
+            </div>
+            <div class="stat-tile">
+              <div class="val" id="stat-sep" style="font-size:1rem">--</div>
+              <div class="lbl">Score Separation</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="grid grid-2" style="margin-bottom:20px">
+        <div class="card">
+          <h3>Health Index Timeline</h3>
+          <canvas id="timeline-chart" height="220"></canvas>
+        </div>
+        <div class="card">
+          <h3 id="feature-chart-title">Feature Distribution</h3>
+          <canvas id="feature-chart" height="220"></canvas>
+        </div>
+      </div>
+
+      <!-- AutoML Reasoning -->
+      <div class="card" style="margin-bottom:20px">
+        <h3>AutoML Reasoning — Model Selection Steps</h3>
+        <div class="automl-log" id="result-log"></div>
+      </div>
+
+      <!-- Top Anomalies -->
+      <div class="card" style="margin-bottom:20px">
+        <h3>Top Critical Samples</h3>
+        <div style="overflow-x:auto">
+          <table id="anomaly-table">
+            <thead>
+              <tr id="anomaly-thead-row">
+                <th>#</th>
+                <th>Health %</th>
+                <th>Fault Code</th>
+              </tr>
+            </thead>
+            <tbody id="anomaly-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="text-align:center">
+        <button class="btn" id="report-btn">Generate Summary Report</button>
+        <button class="btn" id="reset-btn" style="background:#1e2d45;margin-left:12px">Upload New File</button>
+      </div>
+    </div>
+
+    <!-- STAGE 3: Summary Report -->
+    <div id="stage-3" class="hidden">
+      <div class="card" id="report-card">
+        <h3>Summary Report</h3>
+        <div id="report-content"></div>
+      </div>
+      <div style="text-align:center;margin-top:20px">
+        <button class="btn" onclick="window.print()">Print / Save PDF</button>
+        <button class="btn" id="reset-btn2" style="background:#1e2d45;margin-left:12px">Start Over</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = "http://localhost:8000";
+    let fileObj = null;
+    let resultData = null;
+    let timelineChart = null;
+    let featureChart = null;
+
+    // --- File Selection ---
+    const fileInput = document.getElementById("file-input");
+    const uploadBtn = document.getElementById("upload-btn");
+    const dropZone = document.getElementById("drop-zone");
+
+    fileInput.addEventListener("change", e => selectFile(e.target.files[0]));
+    dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("drag"); });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("drag"));
+    dropZone.addEventListener("drop", e => { e.preventDefault(); dropZone.classList.remove("drag"); selectFile(e.dataTransfer.files[0]); });
+
+    function selectFile(f) {
+      if (!f) return;
+      fileObj = f;
+      document.getElementById("file-name").textContent = `Selected: ${f.name} (${(f.size / 1024).toFixed(1)} KB)`;
+      uploadBtn.disabled = false;
+    }
+
+    uploadBtn.addEventListener("click", runPipeline);
+
+    // --- Stage navigation ---
+    function showStage(n) {
+      [0, 1, 2, 3].forEach(i => {
+        document.getElementById(`stage-${i}`).classList.toggle("hidden", i !== n);
+        const pill = document.getElementById(`pill-${i}`);
+        pill.classList.remove("active", "done");
+        if (i < n) pill.classList.add("done");
+        else if (i === n) pill.classList.add("active");
+      });
+    }
+
+    // --- Run Pipeline ---
+    async function runPipeline() {
+      if (!fileObj) return;
+      showStage(1);
+      document.getElementById("automl-log").innerHTML = "";
+
+      const formData = new FormData();
+      formData.append("file", fileObj);
+
+      addLog("automl-log", `Uploading ${fileObj.name}...`, "done");
+
+      try {
+        const resp = await fetch(`${API}/api/upload`, { method: "POST", body: formData });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({ error: `HTTP ${resp.status}` }));
+          addLog("automl-log", `Server error: ${err.error || resp.statusText}`, "warning");
+          if (err.trace) console.error(err.trace);
+          return;
+        }
+        const data = await resp.json();
+        if (data.error) {
+          addLog("automl-log", `ERROR: ${data.error}`, "warning");
+          if (data.trace) console.error(data.trace);
+          return;
+        }
+        resultData = data;
+        document.getElementById("proc-spinner").style.display = "none";
+
+        // Show all steps in order
+        (data.automl_steps || []).forEach(s => addLog("automl-log", s.step, s.status || "done"));
+
+        setTimeout(() => renderResults(data), 1200);
+      } catch (err) {
+        addLog("automl-log", `❌ Failed to reach API: ${err.message}. Make sure the backend is running at ${API} (run: uvicorn api:app --reload)`, "warning");
+      }
+    }
+
+    function addLog(containerId, text, status = "done") {
+      const el = document.createElement("div");
+      el.className = `log-item ${status}`;
+      const icon = status === "done" ? "✅" : status === "warning" ? "⚠️" : "⚙️";
+      el.innerHTML = `<span>${icon}</span><span>${text}</span>`;
+      document.getElementById(containerId).appendChild(el);
+    }
+
+    // --- Render Results ---
+    function renderResults(data) {
+      showStage(2);
+      const s = data.summary;
+
+      // Gauge
+      const hi = s.avg_health_index;
+      document.getElementById("gauge-val").textContent = hi.toFixed(1) + "%";
+      const ring = document.getElementById("gauge-ring");
+      ring.className = "gauge-ring " + (hi >= 75 ? "green" : hi >= 50 ? "yellow" : hi >= 25 ? "orange" : "red");
+      const badge = document.getElementById("status-badge");
+      badge.textContent = s.overall_status.replace(/_/g, " ");
+      badge.className = `status-badge ${s.overall_status}`;
+
+      // Stats
+      document.getElementById("stat-total").textContent = s.total_samples;
+      document.getElementById("stat-anomalies").textContent = s.anomalies_detected;
+      document.getElementById("stat-rate").textContent = s.anomaly_rate_pct + "%";
+
+      const meta = data.automl_metadata;
+      if (meta) {
+        document.getElementById("stat-model").textContent = meta.algorithm || "--";
+        document.getElementById("stat-cont").textContent = meta.contamination ? (meta.contamination * 100).toFixed(1) + "%" : "--";
+        document.getElementById("stat-sep").textContent = meta.score_separation || "--";
+      } else {
+        document.getElementById("stat-model").textContent = "IsolationForest";
+        document.getElementById("stat-cont").textContent = "1.0%";
+        document.getElementById("stat-sep").textContent = "--";
+      }
+
+      // Timeline Chart
+      const tl = data.health_timeline || [];
+      const labels = tl.map(r => r.index);
+      const vals = tl.map(r => r.health_index);
+      const colors = tl.map(r => r.is_anomaly ? "rgba(239,68,68,0.9)" : "rgba(59,130,246,0.4)");
+
+      if (timelineChart) timelineChart.destroy();
+      timelineChart = new Chart(document.getElementById("timeline-chart"), {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Health Index", data: vals, borderColor: "#3b82f6", borderWidth: 1.5,
+              pointBackgroundColor: colors, pointRadius: 3, tension: 0.3, fill: false
+            },
+            {
+              label: "Alert Threshold", data: Array(labels.length).fill(50),
+              borderColor: "#ef4444", borderWidth: 1, borderDash: [6, 4], pointRadius: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true, plugins: { legend: { labels: { color: "#e2e8f0" } } },
+          scales: {
+            x: { ticks: { color: "#64748b", maxTicksLimit: 10 }, grid: { color: "#1e2d45" } },
+            y: { min: 0, max: 100, ticks: { color: "#64748b" }, grid: { color: "#1e2d45" } }
+          }
+        }
+      });
+
+      // Feature Distribution Chart — use first available feature column dynamically
+      const fs = data.feature_stats;
+      const featureCols = data.summary?.feature_cols_used || [];
+      const firstFeatureKey = featureCols.find(k => fs && fs[k] && fs[k].all_values?.length > 0);
+      if (fs && firstFeatureKey) {
+        document.getElementById("feature-chart-title").textContent =
+          `Feature Distribution — ${firstFeatureKey}`;
+        const allVals = fs[firstFeatureKey].all_values;
+        const bins = 30;
+        const minV = Math.min(...allVals), maxV = Math.max(...allVals);
+        const step = (maxV - minV) / bins || 1;
+        const hist = Array(bins).fill(0);
+        allVals.forEach(v => { const i = Math.min(Math.floor((v - minV) / step), bins - 1); hist[i]++; });
+        const binLabels = Array.from({ length: bins }, (_, i) => (minV + i * step).toFixed(3));
+        if (featureChart) featureChart.destroy();
+        featureChart = new Chart(document.getElementById("feature-chart"), {
+          type: "bar",
+          data: {
+            labels: binLabels, datasets: [{
+              label: `${firstFeatureKey} distribution`,
+              data: hist, backgroundColor: "rgba(59,130,246,0.5)", borderColor: "#3b82f6", borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true, plugins: { legend: { labels: { color: "#e2e8f0" } } },
+            scales: {
+              x: { ticks: { color: "#64748b", maxTicksLimit: 8 }, grid: { color: "#1e2d45" } },
+              y: { ticks: { color: "#64748b" }, grid: { color: "#1e2d45" } }
+            }
+          }
+        });
+      }
+
+      // AutoML steps in results
+      const resultLog = document.getElementById("result-log");
+      resultLog.innerHTML = "";
+      (data.automl_steps || []).forEach(s => addLog("result-log", s.step, s.status || "done"));
+
+      // Anomaly table — build headers dynamically from first anomaly row
+      const tbody   = document.getElementById("anomaly-tbody");
+      const theadRow = document.getElementById("anomaly-thead-row");
+      tbody.innerHTML = "";
+      const anomalies = data.top_anomalies || [];
+      if (anomalies.length > 0) {
+        // Rebuild header columns from whatever keys the API returned
+        const dynamicCols = Object.keys(anomalies[0]).filter(
+          k => !["index", "health_index", "fault_code"].includes(k)
+        );
+        // Remove old dynamic ths if re-running
+        theadRow.querySelectorAll(".dyn-th").forEach(el => el.remove());
+        dynamicCols.forEach(col => {
+          const th = document.createElement("th");
+          th.className = "dyn-th";
+          th.textContent = col;
+          theadRow.appendChild(th);
+        });
+        anomalies.forEach(r => {
+          const color = r.health_index >= 50 ? "var(--yellow)" : r.health_index >= 25 ? "var(--orange)" : "var(--red)";
+          let cells = `<td>${r.index}</td>
+            <td><span class="hi-chip" style="background:#1e2d45;color:${color}">${r.health_index}%</span></td>
+            <td><span class="hi-chip" style="background:#1e0a0a;color:var(--red)">${r.fault_code}</span></td>`;
+          dynamicCols.forEach(col => { cells += `<td>${r[col] ?? "–"}</td>`; });
+          tbody.innerHTML += `<tr>${cells}</tr>`;
+        });
+      }
+    }
+
+    // --- Report Generation ---
+    document.getElementById("report-btn").addEventListener("click", () => {
+      if (!resultData) return;
+      showStage(3);
+      const s = resultData.summary;
+      const now = new Date().toLocaleString();
+      const recommendation = s.avg_health_index >= 75 ? "No immediate action required. Continue routine monitoring." :
+        s.avg_health_index >= 50 ? "Schedule a preventive inspection within 30 days." :
+          s.avg_health_index >= 25 ? "Dispatch technician within 24 hours. Fault is imminent." :
+            "CRITICAL: Immediate shutdown and emergency service required.";
+
+      document.getElementById("report-content").innerHTML = `
+    <div style="border-top:1px solid var(--border);margin:16px 0"></div>
+    <div class="grid grid-2" style="gap:16px;margin-bottom:20px">
+      <div><b>Generated:</b> ${now}</div>
+      <div><b>Device:</b> ${fileObj?.name || "Unknown"}</div>
+      <div><b>Overall Health:</b> <span style="color:${s.avg_health_index >= 75 ? 'var(--green)' : s.avg_health_index >= 50 ? 'var(--yellow)' : 'var(--red)'}">${s.avg_health_index}%</span></div>
+      <div><b>Status:</b> ${s.overall_status.replace(/_/g, " ")}</div>
+      <div><b>Total Samples:</b> ${s.total_samples}</div>
+      <div><b>Anomalies:</b> ${s.anomalies_detected} (${s.anomaly_rate_pct}%)</div>
+    </div>
+    <div style="background:#0f172a;border-radius:10px;padding:16px;margin-bottom:16px">
+      <b>Recommended Action:</b><br/><span style="color:var(--orange)">${recommendation}</span>
+    </div>
+    <div style="background:#0f172a;border-radius:10px;padding:16px">
+      <b>AutoML Model Selection Summary:</b><br/>
+      <div class="automl-log" style="margin-top:12px" id="report-log"></div>
+    </div>`;
+      const rl = document.getElementById("report-log");
+      (resultData.automl_steps || []).forEach(s => addLog("report-log", s.step, s.status || "done"));
+    });
+
+    // --- Reset ---
+    function resetAll() {
+      fileObj = null; resultData = null;
+      document.getElementById("file-name").textContent = "";
+      document.getElementById("automl-log").innerHTML = "";
+      document.getElementById("proc-spinner").style.display = "block";
+      uploadBtn.disabled = true;
+      if (timelineChart) { timelineChart.destroy(); timelineChart = null; }
+      if (featureChart) { featureChart.destroy(); featureChart = null; }
+      showStage(0);
+    }
+    document.getElementById("reset-btn").addEventListener("click", resetAll);
+    document.getElementById("reset-btn2").addEventListener("click", resetAll);
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,27 @@
+{
+  "algorithm": "LocalOutlierFactor",
+  "contamination": 0.014,
+  "score_separation": 1.3122,
+  "competitor_separation": 0.253,
+  "winner_reasoning": "LOF separation (1.312) significantly exceeds IForest (0.253). Selected for superior anomaly discrimination.",
+  "training_samples": 2619,
+  "trained_feature_cols": [
+    "fwd_rms_vel",
+    "fwd_mean",
+    "fwd_std",
+    "fwd_min",
+    "fwd_max",
+    "fwd_skew",
+    "fwd_kurtosis",
+    "rr_rms_vel",
+    "rr_mean",
+    "rr_std",
+    "rr_min",
+    "rr_max",
+    "rr_skew",
+    "rr_kurtosis"
+  ],
+  "trained_at": "2026-05-06T13:48:44Z",
+  "patched_at": "contamination threshold adjusted from 0.01 to 0.014 to restore sensitivity",
+  "anomalies_on_training_set": 37
+}
