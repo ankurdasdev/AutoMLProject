@@ -1,5 +1,0 @@
-{
-  "artifactType":  "ARTIFACT_TYPE_IMPLEMENTATION_PLAN",
-  "summary":  "Comprehensive system architecture documentation for the IoT Predictive Maintenance AI project. Includes Mermaid sequence and flow diagrams, a detailed breakdown of the Multi-Model Registry, UI state management flows, and a \"Stress Test\" matrix covering edge cases and failure points.",
-  "updatedAt":  "2026-05-07T08:04:02.981549300Z"
-}
